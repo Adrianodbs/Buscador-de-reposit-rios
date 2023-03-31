@@ -1,6 +1,6 @@
 import * as C from './styles'
 import { FaGithub, FaPlus, FaSpinner, FaBars, FaTrash } from 'react-icons/fa'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 
 import api from '../../services/api'
 
@@ -8,14 +8,39 @@ function Main() {
   const [newRepo, setNewRepo] = useState('')
   const [repositorios, setRepositorios] = useState([])
   const [loading, setLoading] = useState(false)
+  const [alert, setAlert] = useState(null)
+
+  //Buscar
+  useEffect(() => {
+    const repoStorage = localStorage.getItem('repos')
+
+    if (repoStorage) {
+      setRepositorios(JSON.parse(repoStorage))
+    }
+  }, [])
+
+  //Salvar alterações
+  useEffect(() => {
+    localStorage.setItem('repos', JSON.stringify(repositorios))
+  }, [repositorios])
 
   const handleSubmit = useCallback(
     e => {
       e.preventDefault()
       async function submit() {
         setLoading(true)
+        setAlert(null)
         try {
+          if (newRepo === '') {
+            throw new Error('Você precisa indicar um repositório')
+          }
           const response = await api.get(`repos/${newRepo}`)
+
+          const hasRepo = repositorios.find(repo => repo.name === newRepo)
+
+          if (hasRepo) {
+            throw new Error('Repositório duplicado')
+          }
 
           const data = {
             name: response.data.full_name
@@ -24,6 +49,7 @@ function Main() {
           setRepositorios([...repositorios, data])
           setNewRepo('')
         } catch (error) {
+          setAlert(true)
           console.log(error)
         } finally {
           setLoading(false)
@@ -37,6 +63,8 @@ function Main() {
 
   function handleInputChange(e) {
     setNewRepo(e.target.value)
+
+    setAlert(null)
   }
 
   const handleDelete = useCallback(
@@ -54,7 +82,7 @@ function Main() {
         Meus repositórios
       </h1>
 
-      <C.Form onSubmit={handleSubmit}>
+      <C.Form onSubmit={handleSubmit} error={alert}>
         <input
           type="text"
           placeholder="Adicionar repositórios"
