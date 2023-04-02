@@ -11,6 +11,8 @@ export default function Repositorio() {
   const [repo, setRepo] = useState({})
   const [issues, setIssues] = useState([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+
   useEffect(() => {
     async function load() {
       const [repositorioData, issuesData] = await Promise.all([
@@ -22,9 +24,6 @@ export default function Repositorio() {
           }
         })
       ])
-
-      console.log(repositorioData.data)
-
       setRepo(repositorioData.data)
       setIssues(issuesData.data)
       setLoading(false)
@@ -32,6 +31,26 @@ export default function Repositorio() {
 
     load()
   }, [repositorio])
+
+  useEffect(() => {
+    async function loadIssue() {
+      const response = await api.get(`/repos/${repositorio}/issues`, {
+        params: {
+          state: 'open',
+          page,
+          per_page: 5
+        }
+      })
+
+      setIssues(response.data)
+    }
+
+    loadIssue()
+  }, [page])
+
+  function handlePage(action) {
+    setPage(action === 'back' ? page - 1 : page + 1)
+  }
 
   if (loading) {
     return (
@@ -69,6 +88,18 @@ export default function Repositorio() {
           </li>
         ))}
       </C.IssuesList>
+      <C.PageActions>
+        <button
+          disabled={page < 2}
+          type="button"
+          onClick={() => handlePage('back')}
+        >
+          Voltar
+        </button>
+        <button type="button" onClick={() => handlePage('next')}>
+          Próxima
+        </button>
+      </C.PageActions>
     </C.Container>
   )
 }
