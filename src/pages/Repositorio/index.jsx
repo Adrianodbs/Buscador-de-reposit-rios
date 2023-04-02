@@ -12,6 +12,12 @@ export default function Repositorio() {
   const [issues, setIssues] = useState([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
+  const [filter, setFilter] = useState([
+    { state: 'all', label: 'Todas', active: true },
+    { state: 'open', label: 'Abertas', active: false },
+    { state: 'closed', label: 'Fechadas', active: false }
+  ])
+  const [filterIndex, setFilterIndex] = useState(0)
 
   useEffect(() => {
     async function load() {
@@ -19,7 +25,7 @@ export default function Repositorio() {
         api.get(`/repos/${repositorio}`),
         api.get(`/repos/${repositorio}/issues`, {
           params: {
-            state: 'open',
+            state: filter.find(f => f.active).state,
             per_page: 5
           }
         })
@@ -36,7 +42,7 @@ export default function Repositorio() {
     async function loadIssue() {
       const response = await api.get(`/repos/${repositorio}/issues`, {
         params: {
-          state: 'open',
+          state: filter[filterIndex].state,
           page,
           per_page: 5
         }
@@ -46,10 +52,14 @@ export default function Repositorio() {
     }
 
     loadIssue()
-  }, [page])
+  }, [page, filter, filterIndex, repositorio])
 
   function handlePage(action) {
     setPage(action === 'back' ? page - 1 : page + 1)
+  }
+
+  function handleFilter(index) {
+    setFilterIndex(index)
   }
 
   if (loading) {
@@ -70,6 +80,18 @@ export default function Repositorio() {
         <h1>{repo.name}</h1>
         <p>{repo.description}</p>
       </C.Owner>
+
+      <C.FilterList active={filterIndex}>
+        {filter.map((f, index) => (
+          <button
+            type="button"
+            key={f.label}
+            onClick={() => handleFilter(index)}
+          >
+            {f.label}
+          </button>
+        ))}
+      </C.FilterList>
 
       <C.IssuesList>
         {issues.map(issue => (
